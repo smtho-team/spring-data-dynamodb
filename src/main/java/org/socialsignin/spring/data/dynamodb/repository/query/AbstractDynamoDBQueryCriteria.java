@@ -683,11 +683,11 @@ public abstract class AbstractDynamoDBQueryCriteria<T, ID> implements DynamoDBQu
 			if (ClassUtils.isAssignableValue(AttributeValue.class, attributeValue)) {
 				attributeValueList.add((AttributeValue) attributeValue);
 			} else {
-				if (attributeValue != null) {
-					marshalled = attributeValue != object
-							&& !entityInformation.isCompositeHashAndRangeKeyProperty(propertyName);
-				}
-				Class<?> targetPropertyType = marshalled ? String.class : propertyType;
+//				if (attributeValue != null) {
+//					marshalled = attributeValue != object
+//							&& !entityInformation.isCompositeHashAndRangeKeyProperty(propertyName);
+//				}
+				Class<?> targetPropertyType = attributeValue.getClass();
 				addAttributeValue(attributeValueList, attributeValue, targetPropertyType, false);
 			}
 		}
