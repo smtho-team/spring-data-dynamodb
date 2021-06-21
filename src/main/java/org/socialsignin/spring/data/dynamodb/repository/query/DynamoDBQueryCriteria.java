@@ -43,6 +43,8 @@ public interface DynamoDBQueryCriteria<T, ID> {
 
 	DynamoDBQueryCriteria<T, ID> withProjection(Optional<String> projection);
 
+	DynamoDBQueryCriteria<T, ID> withLimit(Integer limit);
+
 	Query<T> buildQuery(DynamoDBOperations dynamoDBOperations);
 
 	Query<Long> buildCountQuery(DynamoDBOperations dynamoDBOperations, boolean pageQuery);
