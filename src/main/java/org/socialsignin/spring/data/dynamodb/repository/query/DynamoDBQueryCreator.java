@@ -28,10 +28,12 @@ import java.util.Optional;
 
 public class DynamoDBQueryCreator<T, ID> extends AbstractDynamoDBQueryCreator<T, ID, T> {
 
+	private final ParameterAccessor parameterAccessor;
 	public DynamoDBQueryCreator(PartTree tree, ParameterAccessor parameterAccessor,
-			DynamoDBEntityInformation<T, ID> entityMetadata, Optional<String> projection,
-			DynamoDBOperations dynamoDBOperations) {
+                                DynamoDBEntityInformation<T, ID> entityMetadata, Optional<String> projection,
+                                DynamoDBOperations dynamoDBOperations) {
 		super(tree, parameterAccessor, entityMetadata, projection, dynamoDBOperations);
+		this.parameterAccessor = parameterAccessor;
 	}
 
 	@Override
@@ -39,6 +41,7 @@ public class DynamoDBQueryCreator<T, ID> extends AbstractDynamoDBQueryCreator<T,
 		if (criteria == null) {
 			return new StaticQuery<T>(null);
 		} else {
+			criteria.withLimit(parameterAccessor.getPageable().getPageSize());
 			criteria.withSort(sort);
 			criteria.withProjection(projection);
 

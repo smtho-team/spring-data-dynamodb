@@ -23,6 +23,15 @@ Technical infos can be found on the [project page](https://derjust.github.io/spr
 * Possibility to integrate [custom repository code](https://github.com/derjust/spring-data-dynamodb/wiki/Custom-repository-implementations)
 * Easy Spring annotation based integration
 * [REST support](https://github.com/derjust/spring-data-dynamodb-examples/blob/master/README-rest.md) via [spring-data-rest](https://projects.spring.io/spring-data-rest/)
+* 基于5.0.4版本做如下修改
+* 当使用Page接收查询的时候禁用page的count统计
+* 修复查询参数中的Page参数设置size属性不起作用的bug
+* 修复当同一个属性上有多个全局二级索引时查询异常的bug
+# 注意
+* 所有的列表查询均需要使用Page作为返回类型
+* 查询参数中Page的page(起始页码)的值只能是0,不允许通过page(页码)分页
+* 当使用全局二级索引查询时,IndexHashKey和IndexRangeKey二者需要同时指定
+* 禁用Dynamodb的扫描(不要加@EnableScan的注解)(默认为禁用)
 
 ## Demo application ##
 

@@ -23,26 +23,12 @@ import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import com.amazonaws.services.dynamodbv2.model.Select;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
-import org.socialsignin.spring.data.dynamodb.query.CountByHashAndRangeKeyQuery;
-import org.socialsignin.spring.data.dynamodb.query.MultipleEntityQueryExpressionQuery;
-import org.socialsignin.spring.data.dynamodb.query.MultipleEntityQueryRequestQuery;
-import org.socialsignin.spring.data.dynamodb.query.MultipleEntityScanExpressionQuery;
-import org.socialsignin.spring.data.dynamodb.query.Query;
-import org.socialsignin.spring.data.dynamodb.query.QueryExpressionCountQuery;
-import org.socialsignin.spring.data.dynamodb.query.QueryRequestCountQuery;
-import org.socialsignin.spring.data.dynamodb.query.ScanExpressionCountQuery;
-import org.socialsignin.spring.data.dynamodb.query.SingleEntityLoadByHashAndRangeKeyQuery;
+import org.socialsignin.spring.data.dynamodb.query.*;
 import org.socialsignin.spring.data.dynamodb.repository.support.DynamoDBIdIsHashAndRangeKeyEntityInformation;
 import org.springframework.util.Assert;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * @author Michael Lavelle
@@ -124,7 +110,7 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 	@SuppressWarnings("unchecked")
 	@Override
 	public DynamoDBQueryCriteria<T, ID> withSingleValueCriteria(String propertyName,
-			ComparisonOperator comparisonOperator, Object value, Class<?> propertyType) {
+                                                                ComparisonOperator comparisonOperator, Object value, Class<?> propertyType) {
 
 		if (entityInformation.isCompositeHashAndRangeKeyProperty(propertyName)) {
 			checkComparisonOperatorPermittedForCompositeHashAndRangeKey(comparisonOperator);
@@ -144,6 +130,7 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 
 	public DynamoDBQueryExpression<T> buildQueryExpression() {
 		DynamoDBQueryExpression<T> queryExpression = new DynamoDBQueryExpression<T>();
+		queryExpression.withLimit(limit);
 		if (isHashKeySpecified()) {
 			T hashKeyPrototype = entityInformation.getHashKeyPropotypeEntityForHashKey(getHashKeyPropertyValue());
 			queryExpression.withHashKeyValues(hashKeyPrototype);
@@ -215,7 +202,7 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 				QueryRequest queryRequest = buildQueryRequest(tableName, getGlobalSecondaryIndexName(),
 						getHashKeyAttributeName(), getRangeKeyAttributeName(), this.getRangeKeyPropertyName(),
 						getHashKeyConditions(), getRangeKeyConditions());
-				return new MultipleEntityQueryRequestQuery<>(dynamoDBOperations, entityInformation.getJavaType(),
+  				return new MultipleEntityQueryRequestQuery<>(dynamoDBOperations, entityInformation.getJavaType(),
 						queryRequest);
 			} else {
 				DynamoDBQueryExpression<T> queryExpression = buildQueryExpression();
@@ -308,26 +295,15 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 
 	}
 
-	protected String getGlobalSecondaryIndexName() {
-		// Get the target global secondary index name using the property
-		// conditions
-		String globalSecondaryIndexName = super.getGlobalSecondaryIndexName();
+	@Override
+	protected String[] getPossibleUsedGlobalSecondaryIndexNames() {
 
-		// Hash and Range Entities store range key equals conditions as
-		// rangeKeyAttributeValue attribute instead of as property condition
-		// Check this attribute and if specified in the query conditions and
-		// it's the only global secondary index range candidate,
-		// then set the index range key to be that associated with the range key
-		if (globalSecondaryIndexName == null) {
-			if (this.hashKeyAttributeValue == null && getRangeKeyAttributeValue() != null) {
-				String[] rangeKeyIndexNames = entityInformation.getGlobalSecondaryIndexNamesByPropertyName()
-						.get(this.getRangeKeyPropertyName());
-				globalSecondaryIndexName = rangeKeyIndexNames != null && rangeKeyIndexNames.length > 0
-						? rangeKeyIndexNames[0]
-						: null;
-			}
+		String propertyName = hashKeyAttributeValue != null ? getHashKeyPropertyName() : getRangeKeyAttributeValue() != null ? getRangeKeyPropertyName() : null;
+
+		if(propertyName == null) {
+			return null;
 		}
-		return globalSecondaryIndexName;
+		return entityInformation.getGlobalSecondaryIndexNamesByPropertyName().get(propertyName);
 	}
 
 	public boolean isApplicableForQuery() {
@@ -354,7 +330,7 @@ public class DynamoDBEntityWithHashAndRangeKeyCriteria<T, ID> extends AbstractDy
 					createSingleValueCondition(getRangeKeyPropertyName(), ComparisonOperator.EQ,
 							getRangeKeyAttributeValue(), getRangeKeyAttributeValue().getClass(), true));
 		}
-		for (Map.Entry<String, List<Condition>> conditionEntry : attributeConditions.entrySet()) {
+		for (Entry<String, List<Condition>> conditionEntry : attributeConditions.entrySet()) {
 			for (Condition condition : conditionEntry.getValue()) {
 				scanExpression.addFilterCondition(conditionEntry.getKey(), condition);
 			}

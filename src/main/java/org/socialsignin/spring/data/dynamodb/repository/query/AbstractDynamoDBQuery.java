@@ -16,23 +16,20 @@
 package org.socialsignin.spring.data.dynamodb.repository.query;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.socialsignin.spring.data.dynamodb.core.DynamoDBOperations;
 import org.socialsignin.spring.data.dynamodb.domain.UnpagedPageImpl;
 import org.socialsignin.spring.data.dynamodb.exception.BatchDeleteException;
 import org.socialsignin.spring.data.dynamodb.query.Query;
 import org.socialsignin.spring.data.dynamodb.utils.ExceptionHandler;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.*;
 import org.springframework.data.repository.query.ParameterAccessor;
 import org.springframework.data.repository.query.Parameters;
 import org.springframework.data.repository.query.ParametersParameterAccessor;
 import org.springframework.data.repository.query.RepositoryQuery;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -41,6 +38,8 @@ import java.util.List;
  * @author Sebastian Just
  */
 public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, ExceptionHandler {
+
+	protected Logger log = LoggerFactory.getLogger(getClass());
 
 	protected final DynamoDBOperations dynamoDBOperations;
 	private final DynamoDBQueryMethod<T, ID> method;
@@ -118,7 +117,7 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 
 	/**
 	 * Executes the {@link AbstractDynamoDBQuery} to return a
-	 * {@link org.springframework.data.domain.Page} of entities.
+	 * {@link Page} of entities.
 	 */
 	class PagedExecution implements QueryExecution<T, ID> {
 
@@ -144,7 +143,7 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 					? Math.min(pageSize, getResultsRestrictionIfApplicable())
 					: pageSize;
 			List<T> resultsPage = new ArrayList<>();
-			while (iterator.hasNext() && processed < toProcess) {
+			while (processed < toProcess && iterator.hasNext()) {
 				resultsPage.add(iterator.next());
 				processed++;
 			}
@@ -170,22 +169,27 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 
 			// Check if the pageable request is 'beyond' the result set
 			if (!pageable.isUnpaged() && pageable.getOffset() > 0) {
-				long processedCount = scanThroughResults(iterator, pageable.getOffset());
-				if (processedCount < pageable.getOffset()) {
-					return new PageImpl<>(Collections.emptyList());
-				}
+				log.error("createPage pageable pageNumber must be 0 pageable:{}",pageable);
+				throw new RuntimeException("pageable pageNumber must be 0");
+
+//				long processedCount = scanThroughResults(iterator, pageable.getOffset());
+//				if (processedCount < pageable.getOffset()) {
+//					return new PageImpl<>(Collections.emptyList());
+//				}
 			}
 
 			// Then Count the result set size
-			Query<Long> countQuery = dynamoDBQuery.doCreateCountQueryWithPermissions(values, true);
-			long count = countQuery.getSingleResult();
+//			Query<Long> countQuery = dynamoDBQuery.doCreateCountQueryWithPermissions(values, true);
+//			long count = countQuery.getSingleResult();
+
+			long count = 0;
 
 			// Finally wrap the result in a page -
 			if (!pageable.isUnpaged()) {
 				// either seek to the proper part of the result set
-				if (getResultsRestrictionIfApplicable() != null) {
-					count = Math.min(count, getResultsRestrictionIfApplicable());
-				}
+//				if (getResultsRestrictionIfApplicable() != null) {
+//					count = Math.min(count, getResultsRestrictionIfApplicable());
+//				}
 
 				List<T> results = readPageOfResultsRestrictMaxResultsIfNecessary(iterator, pageable.getPageSize());
 				return new PageImpl<>(results, pageable, count);
@@ -221,7 +225,7 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 					: pageSize;
 
 			List<T> resultsPage = new ArrayList<>();
-			while (iterator.hasNext() && processed < toProcess) {
+			while (processed < toProcess && iterator.hasNext()) {
 				resultsPage.add(iterator.next());
 				processed++;
 			}
@@ -242,9 +246,11 @@ public abstract class AbstractDynamoDBQuery<T, ID> implements RepositoryQuery, E
 
 			Iterator<T> iterator = allResults.iterator();
 			if (pageable.getOffset() > 0) {
-				long processedCount = scanThroughResults(iterator, pageable.getOffset());
-				if (processedCount < pageable.getOffset())
-					return new SliceImpl<>(new ArrayList<T>());
+				log.error("createSlice pageable pageNumber must be 0 pageable:{}",pageable);
+				throw new RuntimeException("pageable pageNumber must be 0");
+//				long processedCount = scanThroughResults(iterator, pageable.getOffset());
+//				if (processedCount < pageable.getOffset())
+//					return new SliceImpl<>(new ArrayList<T>());
 			}
 			List<T> results = readPageOfResultsRestrictMaxResultsIfNecessary(iterator, pageable.getPageSize());
 			// Scan ahead to retrieve the next page count
